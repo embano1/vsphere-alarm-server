@@ -1,0 +1,39 @@
+project_name: vsphere-alarm-server
+before:
+  hooks:
+env:
+  - GO111MODULE=on
+builds:
+  - id: "binary"
+    binary: vsphere-alarm-server
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -mod=vendor
+    ldflags:
+      - -X 'main.GitSHA={{.ShortCommit}}'
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    name_template: "vsphere-alarm-server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+    wrap_in_directory: true
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+release:
+  draft: false
+  prerelease: true
+  name_template: "Release {{ .Tag }}"

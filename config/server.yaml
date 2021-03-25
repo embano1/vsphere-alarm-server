@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vsphere-alarm-server
+  labels: &applabels
+    app: vsphere-alarm-server
+spec:
+  selector:
+    matchLabels:
+      *applabels
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        *applabels
+    spec:
+      containers:
+        - name: server
+          image: ko://github.com/embano1/vsphere-alarm-server
+          env:
+            - name: VCENTER_URL
+              value: "https://10.161.153.226"
+            - name: VCENTER_INSECURE
+              value: "true"
+            - name: PORT
+              value: "8080"
+            - name: CACHE_TTL
+              value: "3600"
+            - name: DEBUG
+              value: "false"
+            - name: EVENT_SUFFIX
+              value: "AlarmInfo"
+            - name: ALARM_KEY
+              value: "AlarmInfo"
+          volumeMounts:
+            - mountPath: /var/bindings/vsphere
+              name: vsphere-credentials
+              readOnly: true
+          ports:
+            - containerPort: 8080
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+      volumes:
+        - name: vsphere-credentials
+          secret:
+            defaultMode: 420
+            secretName: vsphere-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels: &applabels
+    app: vsphere-alarm-server
+  name: vsphere-alarm-server
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    *applabels
