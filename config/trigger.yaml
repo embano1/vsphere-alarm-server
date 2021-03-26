@@ -2,6 +2,8 @@ apiVersion: eventing.knative.dev/v1
 kind: Trigger
 metadata:
   name: vsphere-alarm-server
+  labels:
+    app: vsphere-alarm-server
 spec:
   broker: default
   subscriber:

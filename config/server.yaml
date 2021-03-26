@@ -6,22 +6,20 @@ metadata:
     app: vsphere-alarm-server
 spec:
   selector:
-    matchLabels:
-      *applabels
+    matchLabels: *applabels
   replicas: 1
   template:
     metadata:
-      labels:
-        *applabels
+      labels: *applabels
     spec:
       containers:
         - name: server
           image: ko://github.com/embano1/vsphere-alarm-server
           env:
             - name: VCENTER_URL
-              value: "https://10.161.153.226"
+              value: "https://vcenter.corp.local"
             - name: VCENTER_INSECURE
-              value: "true"
+              value: "false"
             - name: PORT
               value: "8080"
             - name: CACHE_TTL
@@ -32,6 +30,13 @@ spec:
               value: "AlarmInfo"
             - name: ALARM_KEY
               value: "AlarmInfo"
+          resources:
+            requests:
+              cpu: "125m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
           volumeMounts:
             - mountPath: /var/bindings/vsphere
               name: vsphere-credentials
@@ -59,5 +64,4 @@ spec:
     - port: 80
       protocol: TCP
       targetPort: 8080
-  selector:
-    *applabels
+  selector: *applabels
