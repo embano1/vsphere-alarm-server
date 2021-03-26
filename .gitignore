@@ -8,6 +8,9 @@
 vsphere-alarm-server
 dist
 
+# configurations
+release.yaml
+
 # Creds
 credentials
 

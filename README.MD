@@ -48,6 +48,11 @@ This project aims to tackle such common requirements by:
 - Using CloudEvents as a standardized messaging format for ease of integration
   and extensibility
 
+## Event Flow
+
+![alt](./flow.png)
+
+
 ## Example
 
 ### Regular AlarmStatusChangedEvent
@@ -261,7 +266,8 @@ Next, download
 release manifest for the Kubernetes objects, e.g. via `curl`:
 
 ```
-curl -L -O https://github.com/embano1/vsphere-alarm-server/releases/download/v0.1.0/release.yaml
+export RELEASE=v0.1.1 
+curl -L -O https://github.com/embano1/vsphere-alarm-server/releases/download/${RELEASE}/release.yaml
 ```
 
 The manifest contains the following objects:
