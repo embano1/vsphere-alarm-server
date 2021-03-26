@@ -73,10 +73,10 @@ func newAlarmServer(ctx context.Context) (*alarmServer, error) {
 		vcClient:  vc,
 		ceClient:  ce,
 		cache:     newAlarmCache(env.TTL),
+		errCh:     make(chan error, 1), // any error received will lead to termination
 		source:    vc.URL().String(),
 		suffix:    fmt.Sprintf(".%s", env.EventSuffix),
 		injectKey: env.InjectKey,
-		errCh:     make(chan error, 1),
 	}
 
 	return &a, nil
