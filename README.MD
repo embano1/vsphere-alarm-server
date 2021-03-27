@@ -3,6 +3,7 @@
 [![Release](https://github.com/embano1/vsphere-alarm-server/actions/workflows/release.yaml/badge.svg)](https://github.com/embano1/vsphere-alarm-server/actions/workflows/release.yaml)
 [![Tests](https://github.com/embano1/vsphere-alarm-server/actions/workflows/unit-test.yaml/badge.svg)](https://github.com/embano1/vsphere-alarm-server/actions/workflows/unit-test.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/embano1/vsphere-alarm-server)](https://goreportcard.com/report/github.com/embano1/vsphere-alarm-server)
+[![codecov](https://codecov.io/gh/embano1/vsphere-alarm-server/branch/main/graph/badge.svg?token=TC7MW723JO)](https://codecov.io/gh/embano1/vsphere-alarm-server)
 
 Reacting to vSphere
 [Alarms](https://docs.vmware.com/en/VMware-vSphere/6.7/com.vmware.vsphere.monitoring.doc/GUID-79AC1262-D701-4BC8-8F8D-F046AE0578CF.html)
