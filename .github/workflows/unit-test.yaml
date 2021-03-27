@@ -30,5 +30,19 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
+      - name: Check for .codecov.yaml
+        id: codecov-enabled
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .codecov.yaml
+
+      - if: steps.codecov-enabled.outputs.files_exists == 'true'
+        name: Produce Go Coverage
+        run: echo 'COVER_OPTS=-coverprofile=coverage.txt -covermode=atomic' >> $GITHUB_ENV
+
       - name: Test
-        run: go test -v -race -mod=vendor ./...
+        run: go test -race -mod=vendor $COVER_OPTS ./...
+
+      - if: steps.codecov-enabled.outputs.files_exists == 'true'
+        name: Codecov
+        uses: codecov/codecov-action@v1

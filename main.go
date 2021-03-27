@@ -16,6 +16,8 @@ import (
 )
 
 var (
+	// GitSHA is set during CI as the short Git commit revision for a particular
+	// build
 	GitSHA = "unknown"
 )
 
