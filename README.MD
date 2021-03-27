@@ -254,7 +254,7 @@ Create a secret holding your vCenter credentials using `kubectl` targeting your
 VEBA deployment:
 
 > **Note:** The examples use the `vmare-system` namespace because it has the
-> required `rabbit` broker already set up.
+> required `default` broker already set up.
 
 ```
 kubectl -n vmware-functions create secret generic vsphere-credentials --from-literal=username=administrator@vsphere.local --from-literal=password=passw0rd
@@ -293,12 +293,11 @@ Otherwise change the name in the YAML manifest to match your setup.
 
 ### Configure the Trigger
 
-The broker in VEBA in the `vmware-functions` namespace is called `rabbit`, thus
-change this line in the Trigger definition in the YAML file:
+The broker in VEBA in the `vmware-functions` namespace is called `default`, thus no change is required in the provided `Trigger` YAML manifest. Otherwise change this line accordingly:
 
 ```yaml
 spec:
-  broker: rabbit
+  broker: default
 ```
 
 ### Deploy the application components:
@@ -325,7 +324,7 @@ NAME                                              DESIRED   CURRENT   READY   AG
 replicaset.apps/vsphere-alarm-server-7cf9756785   1         1         1       1m
 
 NAME                                                BROKER    SUBSCRIBER_URI                                                    AGE  READY   REASON
-trigger.eventing.knative.dev/vsphere-alarm-server   rabbit    http://vsphere-alarm-server.vmware-functions.svc.cluster.local/   1m   True
+trigger.eventing.knative.dev/vsphere-alarm-server   default   http://vsphere-alarm-server.vmware-functions.svc.cluster.local/   1m   True
 ```
 
 #### Troubleshooting: vSphere Alarm Server is in CrashLoop backoff
