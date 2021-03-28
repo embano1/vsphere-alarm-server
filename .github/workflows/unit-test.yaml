@@ -37,12 +37,23 @@ jobs:
           files: .codecov.yaml
 
       - if: steps.codecov-enabled.outputs.files_exists == 'true'
-        name: Produce Go Coverage
+        name: Enable Go Coverage
         run: echo 'COVER_OPTS=-coverprofile=coverage.txt -covermode=atomic' >> $GITHUB_ENV
 
       - name: Test
         run: go test -race -mod=vendor $COVER_OPTS ./...
 
+      - name: Verify git clean
+        shell: bash
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "${{ github.repository }} up to date."
+          else
+            echo "${{ github.repository }} is dirty."
+            echo "::error:: $(git status)"
+            exit 1
+          fi
+
       - if: steps.codecov-enabled.outputs.files_exists == 'true'
-        name: Codecov
+        name: Produce Codecov Report
         uses: codecov/codecov-action@v1
