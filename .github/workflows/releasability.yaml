@@ -1,15 +1,17 @@
-name: Release
+# Verify releasability of artifacts without upload/push
+name: Releasability
 
 on:
-  # release will only be created when ref is a tag starting with "v"
   push:
-    tags:
-      - 'v*'
+    branches: [ 'main', 'master' ]
+
+  pull_request:
+    branches: [ 'main', 'master' ]
 
 jobs:
 
   artifacts:
-    name: Create artifacts
+    name: Verify Create artifacts (no upload)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,17 +22,26 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
-      - name: GoReleaser
+      - name: GoReleaser Snapshot
         uses: goreleaser/goreleaser-action@v2
         with:
           version: latest
-          args: release --rm-dist
+          args: release --rm-dist --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # make artifacts available for inspection
+      # https://docs.github.com/en/actions/guides/storing-workflow-data-as-artifacts
+      - name: Archive run artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: |
+            dist
+          retention-days: 5
 
   release:
     needs: artifacts
-    name: Release ko artifact
+    name: Verify Release ko artifact (no upload)
     runs-on: ubuntu-latest
     env:
       GOPATH: ${{ github.workspace }}
@@ -50,7 +61,6 @@ jobs:
           curl -L https://github.com/google/ko/releases/download/v${KO_VERSION}/ko_${KO_VERSION}_Linux_x86_64.tar.gz | tar xzf - ko
           chmod +x ./ko
           sudo mv ko /usr/local/bin
-          docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Check out code onto GOPATH
         uses: actions/checkout@v2
@@ -58,25 +68,8 @@ jobs:
           fetch-depth: 1
           path: ./src/github.com/${{ github.repository }}
 
-      - name: Get Release URL
-        id: get_release_url
-        uses: bruceadams/get-release@v1.2.0
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Build and Publish images, Produce release artifact.
+      - name: Build images
         working-directory: ./src/github.com/${{ github.repository }}
         run: |
           export SHA8=$(echo -n $GITHUB_SHA | cut -c -8)
-          GOFLAGS="-ldflags=-X=main.GitSHA=$SHA8 -mod=vendor" ko resolve --platform=all --tags $(basename "${{ github.ref }}" ),$SHA8 -BRf config/ > release.yaml
-
-      - name: Upload Release Assets
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.get_release_url.outputs.upload_url }}
-          asset_path: ./src/github.com/${{ github.repository }}/release.yaml
-          asset_name: release.yaml
-          asset_content_type: text/plain
+          GOFLAGS="-ldflags=-X=main.GitSHA=$SHA8 -mod=vendor" ko resolve --push=false --platform=all --tags $SHA8 -BRf config/
