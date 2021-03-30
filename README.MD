@@ -56,7 +56,7 @@ This project aims to tackle such common requirements by:
 
 ## Event Flow
 
-![alt](./flow.png)
+![alt](./static/flow.png)
 
 
 ## Example

@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	v2 "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/client"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"golang.org/x/sync/errgroup"
 	"knative.dev/pkg/logging"
 )
 
@@ -59,12 +59,12 @@ func newAlarmServer(ctx context.Context) (*alarmServer, error) {
 		return nil, fmt.Errorf("create vsphere client: %w", err)
 	}
 
-	p, err := v2.NewHTTP(v2.WithPort(env.Port))
+	p, err := cloudevents.NewHTTP(cloudevents.WithPort(env.Port))
 	if err != nil {
 		return nil, fmt.Errorf("create cloudevents transport: %w", err)
 	}
 
-	ce, err := v2.NewClient(p, v2.WithTimeNow(), v2.WithUUIDs())
+	ce, err := cloudevents.NewClient(p, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
 	if err != nil {
 		return nil, fmt.Errorf("create cloudevents client, %w", err)
 	}
@@ -82,7 +82,36 @@ func newAlarmServer(ctx context.Context) (*alarmServer, error) {
 	return &a, nil
 }
 
-func (a *alarmServer) handleEvent(ctx context.Context, event v2.Event) *v2.Event {
+func (a *alarmServer) run(ctx context.Context) error {
+	eg, egCtx := errgroup.WithContext(ctx)
+
+	eg.Go(func() error {
+		return a.ceClient.StartReceiver(egCtx, a.handleEvent)
+	})
+
+	eg.Go(func() error {
+		return a.cache.run(egCtx)
+	})
+
+	eg.Go(func() error {
+		<-egCtx.Done()
+		_ = a.vcClient.Logout(context.TODO())
+		return nil
+	})
+
+	eg.Go(func() error {
+		select {
+		case <-egCtx.Done():
+			return nil
+		case err := <-a.errCh:
+			return err
+		}
+	})
+
+	return eg.Wait()
+}
+
+func (a *alarmServer) handleEvent(ctx context.Context, event cloudevents.Event) *cloudevents.Event {
 	logger := logging.FromContext(ctx)
 
 	if event.Source() == a.source && strings.Contains(event.Type(), a.suffix) {
@@ -96,6 +125,8 @@ func (a *alarmServer) handleEvent(ctx context.Context, event v2.Event) *v2.Event
 		return nil
 	}
 
+	// marshal into generic AlarmEvent to retrieve the moRef (works for all
+	// sub-classes of AlarmEvent)
 	var alarmEvent types.AlarmEvent
 	if err := event.DataAs(&alarmEvent); err != nil {
 		logger.Warnw("decode vcenter event: %v", err)
@@ -134,23 +165,13 @@ func (a *alarmServer) handleEvent(ctx context.Context, event v2.Event) *v2.Event
 		resp.SetSource(a.source)
 		resp.SetType(event.Type() + a.suffix)
 
-		var origEvent map[string]interface{}
-		err := event.DataAs(&origEvent)
+		patched, err := injectInfo(event, a.injectKey, alarm.Info)
 		if err != nil {
-			logger.Warnf("decode original event: %v", err)
+			logger.Errorf("inject info into event data: %v", err)
 			return nil
 		}
 
-		// inject info into original event
-		origEvent[a.injectKey] = alarm.Info
-
-		b, err := json.Marshal(origEvent)
-		if err != nil {
-			logger.Errorf("marshal cloud event response data: %v", err)
-			return nil
-		}
-
-		err = resp.SetData(cloudevents.ApplicationJSON, b)
+		err = resp.SetData(cloudevents.ApplicationJSON, patched)
 		if err != nil {
 			logger.Errorf("set cloud event response data: %v", err)
 			return nil
@@ -163,6 +184,26 @@ func (a *alarmServer) handleEvent(ctx context.Context, event v2.Event) *v2.Event
 	return nil
 }
 
+// injectInfo creates a new event data []byte slice, merging the alarm info into
+// the event data payload specified
+func injectInfo(event cloudevents.Event, key string, info types.AlarmInfo) ([]byte, error) {
+	// avoid concrete AlarmEvent type to retain the event structure, e.g. AlarmStatusChangedEvent
+	var origEvent map[string]interface{}
+	if err := event.DataAs(&origEvent); err != nil {
+		return nil, fmt.Errorf("decode event data: %w", err)
+	}
+
+	// inject info into original event
+	origEvent[key] = info
+
+	b, err := json.Marshal(origEvent)
+	if err != nil {
+		return nil, fmt.Errorf("marshal injected cloud event data: %w", err)
+	}
+	return b, nil
+}
+
+// validateEnv performs a semantic validation of the specified envConfig
 func validateEnv(env envConfig) error {
 	validKey := func(s string) bool {
 		for _, r := range s {
