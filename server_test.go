@@ -158,6 +158,16 @@ func Test_alarmServer_handleEvent(t *testing.T) {
 			want: nil,
 		},
 		{
+			name: "ignore own (injected) event",
+			fields: fields{
+				cache: nil,
+			},
+			args: args{
+				event: *testEvents["AlarmStatusChangedEvent.AlarmInfo"],
+			},
+			want: nil,
+		},
+		{
 			name: "event is AlarmStatusChangedEvent",
 			fields: fields{
 				cache: &cache{
