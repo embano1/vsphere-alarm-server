@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: GoReleaser Snapshot
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -49,10 +49,10 @@ jobs:
       KO_DOCKER_REPO: docker.io/embano1
 
     steps:
-      - name: Set up Go 1.15.x
+      - name: Set up Go 1.16.x
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15.x
+          go-version: 1.16.x
 
       - name: Set up ko
         env:
