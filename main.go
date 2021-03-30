@@ -5,12 +5,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/signals"
 )
@@ -54,12 +52,12 @@ func main() {
 
 	ctx = logging.WithLogger(ctx, logger)
 
-	if err := run(ctx, os.Args, os.Stdout); err != nil && !errors.Is(err, context.Canceled) {
+	if err := run(ctx, os.Args); err != nil && !errors.Is(err, context.Canceled) {
 		logger.Fatalf("error running server: %v", err)
 	}
 }
 
-func run(ctx context.Context, _ []string, _ io.Writer) error {
+func run(ctx context.Context, _ []string) error {
 	var env envConfig
 	if err := envconfig.Process(envPrefix, &env); err != nil {
 		return fmt.Errorf("process env var: %w", err)
@@ -73,31 +71,5 @@ func run(ctx context.Context, _ []string, _ io.Writer) error {
 	logger := logging.FromContext(ctx)
 	logger.Infow("starting vsphere alarm server", "port", env.Port, "cache_ttl", srv.cache.ttl, "debug", env.Debug, "event_suffix", env.EventSuffix, "alarm_info_key", env.InjectKey)
 
-	// fmt.Printf("DEBUG: logging out from vc: %v", vc.Logout(ctx))
-
-	eg, egCtx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		return srv.ceClient.StartReceiver(egCtx, srv.handleEvent)
-	})
-
-	eg.Go(func() error {
-		<-egCtx.Done()
-		_ = srv.vcClient.Logout(context.TODO())
-		return nil
-	})
-
-	eg.Go(func() error {
-		return srv.cache.run(egCtx)
-	})
-
-	eg.Go(func() error {
-		select {
-		case <-egCtx.Done():
-			return nil
-		case err = <-srv.errCh:
-			return err
-		}
-	})
-
-	return eg.Wait()
+	return srv.run(ctx)
 }
