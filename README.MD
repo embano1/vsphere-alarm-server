@@ -54,6 +54,8 @@ This project aims to tackle such common requirements by:
 - Using CloudEvents as a standardized messaging format for ease of integration
   and extensibility
 
+> **Note:** Currently only JSON-encoded event payloads (`datacontenttype="application/json"` or unset) are supported. See issue [#19](https://github.com/embano1/vsphere-alarm-server/issues/19).
+
 ## Event Flow
 
 ![alt](./static/flow.png)
