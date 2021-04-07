@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -119,9 +118,9 @@ func (a *alarmServer) handleEvent(ctx context.Context, event cloudevents.Event) 
 		return nil
 	}
 
-	// TODO: only JSON encoding supported
-	if !bytes.HasPrefix(event.Data(), []byte("{")) {
-		logger.Warnw("ignoring event: data is not JSON-encoded", "id", event.ID(), "type", event.Type(), "content-type", event.DataContentType())
+	// TODO: only JSON-encoded payload supported
+	if event.DataContentType() != cloudevents.ApplicationJSON {
+		logger.Debugw("ignoring event: payload is not JSON-encoded", "id", event.ID(), "source", event.Source(), "type", event.Type(), "encoding", event.DataContentType())
 		return nil
 	}
 
@@ -176,7 +175,7 @@ func (a *alarmServer) handleEvent(ctx context.Context, event cloudevents.Event) 
 			logger.Errorf("set cloud event response data: %v", err)
 			return nil
 		}
-		logger.Debugw("returning enriched alarm event", "id", resp.ID(), "source", resp.Source(), "type", resp.Type())
+		logger.Debugw("returning enriched alarm event", "source", resp.Source(), "type", resp.Type())
 		return &resp
 	}
 
@@ -187,8 +186,9 @@ func (a *alarmServer) handleEvent(ctx context.Context, event cloudevents.Event) 
 // injectInfo creates a new event data []byte slice, merging the alarm info into
 // the event data payload specified
 func injectInfo(event cloudevents.Event, key string, info types.AlarmInfo) ([]byte, error) {
-	// avoid concrete AlarmEvent type to retain the event structure, e.g. AlarmStatusChangedEvent
 	var origEvent map[string]interface{}
+
+	// avoid concrete AlarmEvent type to retain the event structure, e.g. AlarmStatusChangedEvent
 	if err := event.DataAs(&origEvent); err != nil {
 		return nil, fmt.Errorf("decode event data: %w", err)
 	}
@@ -198,8 +198,9 @@ func injectInfo(event cloudevents.Event, key string, info types.AlarmInfo) ([]by
 
 	b, err := json.Marshal(origEvent)
 	if err != nil {
-		return nil, fmt.Errorf("marshal injected cloud event data: %w", err)
+		return nil, fmt.Errorf("marshal injected cloud event JSON data: %w", err)
 	}
+
 	return b, nil
 }
 

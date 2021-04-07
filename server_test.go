@@ -9,6 +9,7 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"github.com/vmware/govmomi/vim25/xml"
 	"go.uber.org/zap/zaptest"
 	"gotest.tools/assert"
 	"knative.dev/pkg/logging"
@@ -168,6 +169,16 @@ func Test_alarmServer_handleEvent(t *testing.T) {
 			want: nil,
 		},
 		{
+			name: "ignore XML-encoded event",
+			fields: fields{
+				cache: nil,
+			},
+			args: args{
+				event: *testEvents["AlarmStatusChangedEvent.XML"],
+			},
+			want: nil,
+		},
+		{
 			name: "event is AlarmStatusChangedEvent",
 			fields: fields{
 				cache: &cache{
@@ -280,6 +291,17 @@ func createCloudEvents(t *testing.T) map[string]*cloudevents.Event {
 	assert.NilError(t, err)
 
 	eventMap["AlarmStatusChangedEvent"] = &ceAlarmEvent
+
+	// AlarmStatusChangedEvent (xml-encoded)
+	ceXmlEvent := cloudevents.NewEvent()
+	ceXmlEvent.SetSource(vc)
+	ceXmlEvent.SetType("AlarmStatusChangedEvent")
+	xmlData, err := xml.Marshal(alarmEvent)
+	assert.NilError(t, err)
+	err = ceXmlEvent.SetData(cloudevents.ApplicationXML, xmlData)
+	assert.NilError(t, err)
+
+	eventMap["AlarmStatusChangedEvent.XML"] = &ceXmlEvent
 
 	// AlarmStatusChangedEvent.AlarmInfo
 	ceAlarmEventInjected := ceAlarmEvent.Clone()
