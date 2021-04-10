@@ -70,10 +70,10 @@ information about the alarm and associated vSphere objects:
 
 ```json
 {
-  "Key": 51141,
-  "ChainId": 51141,
-  "CreatedTime": "2021-03-26T09:05:17.663Z",
-  "UserName": "",
+  "Key": 9300,
+  "ChainId": 9300,
+  "CreatedTime": "2021-04-10T20:49:30.032Z",
+  "UserName": "VSPHERE.LOCAL\\Administrator",
   "Datacenter": {
     "Name": "vcqaDC",
     "Datacenter": {
@@ -89,37 +89,47 @@ information about the alarm and associated vSphere objects:
     }
   },
   "Host": {
-    "Name": "10.161.139.167",
+    "Name": "10.192.193.184",
     "Host": {
       "Type": "HostSystem",
       "Value": "host-27"
     }
   },
-  "FullFormattedMessage": "Alarm 'test-04' on 10.161.139.167 changed from Green to Yellow",
+  "Vm": {
+    "Name": "test-01",
+    "Vm": {
+      "Type": "VirtualMachine",
+      "Value": "vm-56"
+    }
+  },
+  "Ds": null,
+  "Net": null,
+  "Dvs": null,
+  "FullFormattedMessage": "Alarm 'power-off-alarm' on test-01 changed from Red to Green",
   "ChangeTag": "",
   "Alarm": {
-    "Name": "test-04",
+    "Name": "power-off-alarm",
     "Alarm": {
       "Type": "Alarm",
-      "Value": "alarm-285"
+      "Value": "alarm-283"
     }
   },
   "Source": {
-    "Name": "10.161.139.167",
+    "Name": "test-01",
     "Entity": {
-      "Type": "HostSystem",
-      "Value": "host-27"
+      "Type": "VirtualMachine",
+      "Value": "vm-56"
     }
   },
   "Entity": {
-    "Name": "10.161.139.167",
+    "Name": "test-01",
     "Entity": {
-      "Type": "HostSystem",
-      "Value": "host-27"
+      "Type": "VirtualMachine",
+      "Value": "vm-56"
     }
   },
-  "From": "green",
-  "To": "yellow"
+  "From": "red",
+  "To": "green"
 }
 ```
 
@@ -134,31 +144,79 @@ Using the vSphere Alarm Server, any vSphere Alarm event it receives
 
 ```json
 {
+  "Key": 9300,
+  "ChainId": 9300,
+  "CreatedTime": "2021-04-10T20:49:30.032Z",
+  "UserName": "VSPHERE.LOCAL\\Administrator",
+  "Datacenter": {
+    "Name": "vcqaDC",
+    "Datacenter": {
+      "Type": "Datacenter",
+      "Value": "datacenter-2"
+    }
+  },
+  "ComputeResource": {
+    "Name": "cls",
+    "ComputeResource": {
+      "Type": "ClusterComputeResource",
+      "Value": "domain-c7"
+    }
+  },
+  "Host": {
+    "Name": "10.192.193.184",
+    "Host": {
+      "Type": "HostSystem",
+      "Value": "host-27"
+    }
+  },
+  "Vm": {
+    "Name": "test-01",
+    "Vm": {
+      "Type": "VirtualMachine",
+      "Value": "vm-56"
+    }
+  },
+  "Ds": null,
+  "Net": null,
+  "Dvs": null,
+  "FullFormattedMessage": "Alarm 'power-off-alarm' on test-01 changed from Red to Green",
+  "ChangeTag": "",
   "Alarm": {
+    "Name": "power-off-alarm",
     "Alarm": {
       "Type": "Alarm",
-      "Value": "alarm-285"
-    },
-    "Name": "test-04"
+      "Value": "alarm-283"
+    }
   },
+  "Source": {
+    "Name": "test-01",
+    "Entity": {
+      "Type": "VirtualMachine",
+      "Value": "vm-56"
+    }
+  },
+  "Entity": {
+    "Name": "test-01",
+    "Entity": {
+      "Type": "VirtualMachine",
+      "Value": "vm-56"
+    }
+  },
+  "From": "red",
+  "To": "green",
   "AlarmInfo": {
-    "Name": "test-04",
+    "Name": "power-off-alarm",
     "SystemName": "",
-    "Description": "",
+    "Description": "Fired when VM is powered off",
     "Enabled": true,
     "Expression": {
       "Expression": [
         {
-          "Operator": "isAbove",
-          "Type": "HostSystem",
-          "Metric": {
-            "CounterId": 125,
-            "Instance": ""
-          },
-          "Yellow": 10,
-          "YellowInterval": 30,
-          "Red": 0,
-          "RedInterval": 0
+          "Comparisons": null,
+          "EventType": "EventEx",
+          "EventTypeId": "vim.event.VmPoweredOffEvent",
+          "ObjectType": "VirtualMachine",
+          "Status": "red"
         }
       ]
     },
@@ -171,59 +229,16 @@ Using the vSphere Alarm Server, any vSphere Alarm event it receives
     "Key": "",
     "Alarm": {
       "Type": "Alarm",
-      "Value": "alarm-285"
+      "Value": "alarm-283"
     },
     "Entity": {
-      "Type": "HostSystem",
-      "Value": "host-27"
+      "Type": "VirtualMachine",
+      "Value": "vm-56"
     },
-    "LastModifiedTime": "2021-03-23T09:38:42.03237Z",
+    "LastModifiedTime": "2021-03-30T10:37:42.187061Z",
     "LastModifiedUser": "VSPHERE.LOCAL\\Administrator",
     "CreationEventId": 0
-  },
-  "ChainId": 51141,
-  "ChangeTag": "",
-  "ComputeResource": {
-    "ComputeResource": {
-      "Type": "ClusterComputeResource",
-      "Value": "domain-c7"
-    },
-    "Name": "cls"
-  },
-  "CreatedTime": "2021-03-26T09:05:17.663Z",
-  "Datacenter": {
-    "Datacenter": {
-      "Type": "Datacenter",
-      "Value": "datacenter-2"
-    },
-    "Name": "vcqaDC"
-  },
-  "Entity": {
-    "Entity": {
-      "Type": "HostSystem",
-      "Value": "host-27"
-    },
-    "Name": "10.161.139.167"
-  },
-  "From": "green",
-  "FullFormattedMessage": "Alarm 'test-04' on 10.161.139.167 changed from Green to Yellow",
-  "Host": {
-    "Host": {
-      "Type": "HostSystem",
-      "Value": "host-27"
-    },
-    "Name": "10.161.139.167"
-  },
-  "Key": 51141,
-  "Source": {
-    "Entity": {
-      "Type": "HostSystem",
-      "Value": "host-27"
-    },
-    "Name": "10.161.139.167"
-  },
-  "To": "yellow",
-  "UserName": "",
+  }
 }
 ```
 
