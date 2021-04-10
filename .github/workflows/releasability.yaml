@@ -36,8 +36,9 @@ jobs:
         with:
           name: dist
           path: |
-            dist
-          retention-days: 5
+            dist/vsphere-alarm-server*x86_64*.tar.gz
+            dist/checksums.txt
+          retention-days: 1
 
   release:
     needs: artifacts
@@ -72,4 +73,4 @@ jobs:
         working-directory: ./src/github.com/${{ github.repository }}
         run: |
           export SHA8=$(echo -n $GITHUB_SHA | cut -c -8)
-          GOFLAGS="-ldflags=-X=main.GitSHA=$SHA8 -mod=vendor" ko resolve --push=false --platform=all --tags $SHA8 -BRf config/
+          GOFLAGS="-ldflags=-X=main.GitSHA=$SHA8 -mod=vendor" ko resolve --push=false --tags $SHA8 -BRf config/
