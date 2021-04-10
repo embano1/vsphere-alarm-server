@@ -41,7 +41,7 @@ jobs:
         run: echo 'COVER_OPTS=-coverprofile=coverage.txt -covermode=atomic' >> $GITHUB_ENV
 
       - name: Test
-        run: go test -race -mod=vendor $COVER_OPTS ./...
+        run: go test -v -race -mod=vendor $COVER_OPTS ./...
 
       - name: Verify git clean
         shell: bash
