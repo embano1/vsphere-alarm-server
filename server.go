@@ -8,6 +8,7 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/client"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/property"
@@ -164,7 +165,7 @@ func (a *alarmServer) handleEvent(ctx context.Context, event cloudevents.Event) 
 		resp.SetSource(a.source)
 		resp.SetType(event.Type() + a.suffix)
 
-		patched, err := injectInfo(event, a.injectKey, alarm.Info)
+		patched, err := injectAlarmInfo(event, a.injectKey, alarm.Info)
 		if err != nil {
 			logger.Errorf("inject info into event data: %v", err)
 			return nil
@@ -183,25 +184,29 @@ func (a *alarmServer) handleEvent(ctx context.Context, event cloudevents.Event) 
 	return nil
 }
 
-// injectInfo creates a new event data []byte slice, merging the alarm info into
-// the event data payload specified
-func injectInfo(event cloudevents.Event, key string, info types.AlarmInfo) ([]byte, error) {
-	var origEvent map[string]interface{}
-
-	// avoid concrete AlarmEvent type to retain the event structure, e.g. AlarmStatusChangedEvent
-	if err := event.DataAs(&origEvent); err != nil {
-		return nil, fmt.Errorf("decode event data: %w", err)
-	}
-
-	// inject info into original event
-	origEvent[key] = info
-
-	b, err := json.Marshal(origEvent)
+// injectAlarmInfo creates a new event data []byte slice, patching AlarmInfo
+// into the data payload of the specified event
+func injectAlarmInfo(event cloudevents.Event, key string, info types.AlarmInfo) ([]byte, error) {
+	b, err := json.Marshal(info)
 	if err != nil {
-		return nil, fmt.Errorf("marshal injected cloud event JSON data: %w", err)
+		return nil, fmt.Errorf("marshal AlarmInfo: %w", err)
 	}
 
-	return b, nil
+	patchJSON := fmt.Sprintf(`[{"op":"add","path":"/%s","value":%s}]`, key, string(b))
+	patch, err := jsonpatch.DecodePatch([]byte(patchJSON))
+	if err != nil {
+		return nil, fmt.Errorf("decode JSON patch: %w", err)
+	}
+
+	patched, err := patch.Apply(event.Data())
+	if err != nil {
+		return nil, fmt.Errorf("apply JSON patch: %w", err)
+	}
+
+	fmt.Println(string(event.Data()))
+	fmt.Println(string(patched))
+
+	return patched, nil
 }
 
 // validateEnv performs a semantic validation of the specified envConfig

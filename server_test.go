@@ -81,7 +81,7 @@ func Test_validateEnv(t *testing.T) {
 	}
 }
 
-func Test_injectInfo(t *testing.T) {
+func Test_injectAlarmInfo(t *testing.T) {
 	testEvents := createCloudEvents(t)
 
 	invalidEvent := cloudevents.NewEvent()
@@ -123,9 +123,9 @@ func Test_injectInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := injectInfo(tt.args.event, tt.args.key, tt.args.info)
+			got, err := injectAlarmInfo(tt.args.event, tt.args.key, tt.args.info)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("injectInfo() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("injectAlarmInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			assert.DeepEqual(t, got, tt.want)
@@ -314,4 +314,4 @@ func createCloudEvents(t *testing.T) map[string]*cloudevents.Event {
 	return eventMap
 }
 
-var patchedEvent = []byte(`{"Alarm":{"Alarm":{"Type":"Alarm","Value":"alarm-1"},"Name":""},"AlarmInfo":{"Name":"alarm-1","SystemName":"","Description":"A test alarm","Enabled":true,"Expression":null,"Action":null,"ActionFrequency":0,"Setting":null,"Key":"","Alarm":{"Type":"Alarm","Value":"alarm-1"},"Entity":{"Type":"","Value":""},"LastModifiedTime":"0001-01-01T00:00:00Z","LastModifiedUser":"","CreationEventId":0},"ChainId":0,"ChangeTag":"","ComputeResource":null,"CreatedTime":"0001-01-01T00:00:00Z","Datacenter":null,"Ds":null,"Dvs":null,"Entity":{"Entity":{"Type":"","Value":""},"Name":""},"From":"green","FullFormattedMessage":"","Host":null,"Key":1,"Net":null,"Source":{"Entity":{"Type":"","Value":""},"Name":""},"To":"yellow","UserName":"","Vm":null}`)
+var patchedEvent = []byte(`{"Key":1,"ChainId":0,"CreatedTime":"0001-01-01T00:00:00Z","UserName":"","Datacenter":null,"ComputeResource":null,"Host":null,"Vm":null,"Ds":null,"Net":null,"Dvs":null,"FullFormattedMessage":"","ChangeTag":"","Alarm":{"Name":"","Alarm":{"Type":"Alarm","Value":"alarm-1"}},"Source":{"Name":"","Entity":{"Type":"","Value":""}},"Entity":{"Name":"","Entity":{"Type":"","Value":""}},"From":"green","To":"yellow","AlarmInfo":{"Name":"alarm-1","SystemName":"","Description":"A test alarm","Enabled":true,"Expression":null,"Action":null,"ActionFrequency":0,"Setting":null,"Key":"","Alarm":{"Type":"Alarm","Value":"alarm-1"},"Entity":{"Type":"","Value":""},"LastModifiedTime":"0001-01-01T00:00:00Z","LastModifiedUser":"","CreationEventId":0}}`)
