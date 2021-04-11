@@ -203,9 +203,6 @@ func injectAlarmInfo(event cloudevents.Event, key string, info types.AlarmInfo) 
 		return nil, fmt.Errorf("apply JSON patch: %w", err)
 	}
 
-	fmt.Println(string(event.Data()))
-	fmt.Println(string(patched))
-
 	return patched, nil
 }
 
