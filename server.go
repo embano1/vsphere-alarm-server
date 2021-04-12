@@ -164,6 +164,8 @@ func (a *alarmServer) handleEvent(ctx context.Context, event cloudevents.Event) 
 		resp := cloudevents.NewEvent()
 		resp.SetSource(a.source)
 		resp.SetType(event.Type() + a.suffix)
+		// return subject (if any) as is
+		resp.SetSubject(event.Subject())
 
 		patched, err := injectAlarmInfo(event, a.injectKey, alarm.Info)
 		if err != nil {
