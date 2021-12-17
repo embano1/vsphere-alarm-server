@@ -284,13 +284,11 @@ kubectl -n vmware-functions create secret generic vsphere-credentials --from-lit
 > retrieve all alarm definitions for the incoming events.
 
 
-Next, download
-[this](https://github.com/embano1/vsphere-alarm-server/releases/download/v0.1.0/release.yaml)
-release manifest for the Kubernetes objects, e.g. via `curl`:
+Next, download the latest [release manifest](https://github.com/embano1/vsphere-alarm-server/releases/latest/download/release.yaml)
+for the Kubernetes objects, e.g. via `curl`:
 
 ```
-export RELEASE=v0.1.1 
-curl -L -O https://github.com/embano1/vsphere-alarm-server/releases/download/${RELEASE}/release.yaml
+curl -L -O https://github.com/embano1/vsphere-alarm-server/releases/latest/download/release.yaml
 ```
 
 The manifest contains the following objects:
@@ -383,3 +381,30 @@ Kubernetes `deployment` manifest) instead of using command line flags.
 If the incoming CloudEvent `type` is `com.vmware.event.router/event` and the
 event `data` is a class of AlarmEvent the returned event type using
 `EVENT_SUFFIX="AlarmInfo"` would be `com.vmware.event.router/event.AlarmInfo`.
+
+## Build Custom Image
+
+**Note:** This step is only required if you made code changes to the Go code.
+
+This example uses [`ko`](https://github.com/google/ko) to build and push
+container artifacts.
+
+```console
+# only when using kind: 
+# export KIND_CLUSTER_NAME=kind
+# export KO_DOCKER_REPO=kind.local
+
+export KO_DOCKER_REPO=my-docker-username
+export KO_COMMIT=$(git rev-parse --short=8 HEAD)
+export KO_TAG=$(git describe --abbrev=0 --tags)
+
+# build, push and run the worker in the configured Kubernetes context 
+# and vmware-preemption Kubernetes namespace
+ko resolve -BRf config | kubectl -n vmware-functions apply -f -
+```
+
+To delete the deployment:
+
+```console
+ko -n vmware-functions delete -f config
+```
