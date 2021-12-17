@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
       - name: GoReleaser Snapshot
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -41,36 +41,47 @@ jobs:
           retention-days: 1
 
   release:
-    needs: artifacts
     name: Verify Release ko artifact (no upload)
     runs-on: ubuntu-latest
     env:
-      GOPATH: ${{ github.workspace }}
-      GO111MODULE: on
-      KO_DOCKER_REPO: docker.io/embano1
+      KO_DOCKER_REPO: us.gcr.io/daisy-284300/veba # vsphere-alarm-server will be added by ko
 
     steps:
-      - name: Set up Go 1.16.x
+      - name: Setup ko
+        uses: imjasonh/setup-ko@2c3450ca27f6e6f2b02e72a40f2163c281a1f675 # v0.4 tag, will install latest ko version
+
+      - name: Set up Go 1.17.x
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.x
-
-      - name: Set up ko
-        env:
-          KO_VERSION: 0.8.1
-        run: |
-          curl -L https://github.com/google/ko/releases/download/v${KO_VERSION}/ko_${KO_VERSION}_Linux_x86_64.tar.gz | tar xzf - ko
-          chmod +x ./ko
-          sudo mv ko /usr/local/bin
+          go-version: 1.17
 
       - name: Check out code onto GOPATH
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
-          path: ./src/github.com/${{ github.repository }}
 
-      - name: Build images
-        working-directory: ./src/github.com/${{ github.repository }}
+      - name: Login to GCP
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_email: ${{ secrets.GCP_EMAIL }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker --quiet
+
+      - name: Get short COMMIT and TAG
         run: |
-          export SHA8=$(echo -n $GITHUB_SHA | cut -c -8)
-          GOFLAGS="-ldflags=-X=main.GitSHA=$SHA8 -mod=vendor" ko resolve --push=false --tags $SHA8 -BRf config/
+          echo "KO_COMMIT=$(echo -n $GITHUB_SHA | cut -c -8)" >> $GITHUB_ENV
+          echo "KO_TAG=$(basename "${{ github.ref }}")" >> $GITHUB_ENV
+
+      - name: Build image (no push)
+        run: |
+          # build, push and create release YAML
+          ko resolve --push=false --tags ${KO_TAG},${KO_COMMIT},latest -BRf config/ > release.yaml
+
+      - name: Archive run artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: release
+          path: |
+            release.yaml
+          retention-days: 1

@@ -14,9 +14,8 @@ import (
 )
 
 var (
-	// GitSHA is set during CI as the short Git commit revision for a particular
-	// build
-	GitSHA = "unknown"
+	buildCommit = "undefined" // build injection
+	buildTag    = "undefined" // build injection
 )
 
 func main() {
@@ -24,7 +23,8 @@ func main() {
 	flag.Parse()
 
 	if *printVersion {
-		fmt.Printf("commit: %s\n", GitSHA)
+		fmt.Printf("commit: %s\n", buildCommit)
+		fmt.Printf("tag: %s\n", buildTag)
 		os.Exit(0)
 	}
 
@@ -37,19 +37,21 @@ func main() {
 	var logger *zap.SugaredLogger
 
 	if env.Debug {
-		if logDev, err := zap.NewDevelopment(); err != nil {
+		logDev, err := zap.NewDevelopment()
+		if err != nil {
 			panic(fmt.Errorf("create logger: %w", err).Error())
-		} else {
-			logger = logDev.Sugar().Named("vsphere-alarm-server").With("commit", GitSHA)
 		}
+		logger = logDev.Sugar()
+
 	} else {
-		if logProd, err := zap.NewProduction(zap.AddStacktrace(zap.ErrorLevel)); err != nil {
+		logProd, err := zap.NewProduction(zap.AddStacktrace(zap.ErrorLevel))
+		if err != nil {
 			panic(fmt.Errorf("create logger: %w", err).Error())
-		} else {
-			logger = logProd.Sugar().Named("vsphere-alarm-server").With("commit", GitSHA)
 		}
+		logger = logProd.Sugar()
 	}
 
+	logger = logger.Named("vsphere-alarm-server").With("commit", buildCommit, "tag", buildTag)
 	ctx = logging.WithLogger(ctx, logger)
 
 	if err := run(ctx, os.Args); err != nil && !errors.Is(err, context.Canceled) {

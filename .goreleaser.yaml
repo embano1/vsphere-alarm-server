@@ -14,7 +14,8 @@ builds:
     flags:
       - -mod=vendor
     ldflags:
-      - -X 'main.GitSHA={{.ShortCommit}}'
+      - -X 'main.buildCommit={{.ShortCommit}}'
+      - -X 'main.buildTag={{.Version}}'
     goos:
       - darwin
       - linux
@@ -36,7 +37,7 @@ archives:
         format: zip
     files:
       - LICENSE
-    wrap_in_directory: true
+    wrap_in_directory: "true"
 
 checksum:
   name_template: "checksums.txt"
@@ -53,5 +54,5 @@ changelog:
       
 release:
   draft: false
-  prerelease: true
+  prerelease: false
   name_template: "Release {{ .Tag }}"
