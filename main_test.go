@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	vsphere "github.com/embano1/vsphere/client"
 	"github.com/vmware/govmomi/simulator"
+	_ "github.com/vmware/govmomi/vapi/simulator"
 	"github.com/vmware/govmomi/vim25"
 	"go.uber.org/zap/zaptest"
 	"gotest.tools/assert"
@@ -25,11 +27,13 @@ func Test_run(t *testing.T) {
 
 	secretsDir := createSecret(t, username, password)
 	defaultEnv := envConfig{
+		Config: vsphere.Config{
+			SecretPath: secretsDir,
+			Insecure:   true, // vcsim
+		},
 		Port:        50001,
-		SecretPath:  secretsDir,
 		EventSuffix: "AlarmInfo",
 		InjectKey:   "AlarmInfo",
-		Insecure:    true, // vcsim
 	}
 
 	t.Run("fail with authentication error", func(t *testing.T) {
@@ -44,7 +48,7 @@ func Test_run(t *testing.T) {
 		}
 
 		simulator.Run(func(ctx context.Context, client *vim25.Client) error {
-			defaultEnv.VCenter = client.URL().String()
+			defaultEnv.Config.Address = client.URL().String()
 			err := setEnv(defaultEnv)
 			assert.NilError(t, err)
 
@@ -59,7 +63,7 @@ func Test_run(t *testing.T) {
 			}()
 
 			err = run(ctx, nil)
-			assert.ErrorContains(t, err, "create vsphere client: ServerFaultCode: Login failure")
+			assert.ErrorContains(t, err, "ServerFaultCode: Login failure")
 			return nil
 		}, model)
 	})
@@ -76,7 +80,7 @@ func Test_run(t *testing.T) {
 		}
 
 		simulator.Run(func(ctx context.Context, client *vim25.Client) error {
-			defaultEnv.VCenter = client.URL().String()
+			defaultEnv.Config.Address = client.URL().String()
 			err := setEnv(defaultEnv)
 			assert.NilError(t, err)
 
@@ -134,7 +138,7 @@ func setEnv(env envConfig) error {
 		return err
 	}
 
-	if err := os.Setenv("VCENTER_URL", env.VCenter); err != nil {
+	if err := os.Setenv("VCENTER_URL", env.Config.Address); err != nil {
 		return err
 	}
 
@@ -142,7 +146,7 @@ func setEnv(env envConfig) error {
 		return err
 	}
 
-	if err := os.Setenv("SECRET_PATH", env.SecretPath); err != nil {
+	if err := os.Setenv("VCENTER_SECRET_PATH", env.SecretPath); err != nil {
 		return err
 	}
 

@@ -224,7 +224,9 @@ func (p *ResourcePool) ImportVApp(ctx *Context, req *types.ImportVApp) soap.HasF
 		Host:   req.Host,
 	})
 
-	ctask := Map.Get(res.(*methods.CreateVM_TaskBody).Res.Returnval).(*Task)
+	ctask := ctx.Map.Get(res.(*methods.CreateVM_TaskBody).Res.Returnval).(*Task)
+	ctask.Wait()
+
 	if ctask.Info.Error != nil {
 		body.Fault_ = Fault("", ctask.Info.Error.Fault)
 		return body
@@ -345,7 +347,7 @@ func (p *ResourcePool) CreateVApp(req *types.CreateVApp) soap.HasFault {
 func (a *VirtualApp) CreateChildVMTask(ctx *Context, req *types.CreateChildVM_Task) soap.HasFault {
 	body := &methods.CreateChildVM_TaskBody{}
 
-	folder := Map.Get(*a.ParentFolder).(*Folder)
+	folder := ctx.Map.Get(*a.ParentFolder).(*Folder)
 
 	res := folder.CreateVMTask(ctx, &types.CreateVM_Task{
 		This:   folder.Self,
@@ -403,7 +405,8 @@ func (a *VirtualApp) CloneVAppTask(ctx *Context, req *types.CloneVApp_Task) soap
 				},
 			})
 
-			ctask := Map.Get(res.(*methods.CloneVM_TaskBody).Res.Returnval).(*Task)
+			ctask := ctx.Map.Get(res.(*methods.CloneVM_TaskBody).Res.Returnval).(*Task)
+			ctask.Wait()
 			if ctask.Info.Error != nil {
 				return nil, ctask.Info.Error.Fault
 			}
@@ -414,7 +417,7 @@ func (a *VirtualApp) CloneVAppTask(ctx *Context, req *types.CloneVApp_Task) soap
 
 	return &methods.CloneVApp_TaskBody{
 		Res: &types.CloneVApp_TaskResponse{
-			Returnval: task.Run(),
+			Returnval: task.Run(ctx),
 		},
 	}
 }
@@ -448,21 +451,21 @@ func (p *ResourcePool) DestroyTask(ctx *Context, req *types.Destroy_Task) soap.H
 		vms := p.ResourcePool.Vm
 		for _, ref := range vms {
 			vm := ctx.Map.Get(ref).(*VirtualMachine)
-			ctx.Map.WithLock(vm, func() { vm.ResourcePool = &parent.Self })
+			ctx.WithLock(vm, func() { vm.ResourcePool = &parent.Self })
 		}
 
 		ctx.WithLock(parent, func() {
 			parent.Vm = append(parent.Vm, vms...)
 		})
 
-		ctx.Map.Remove(req.This)
+		ctx.Map.Remove(ctx, req.This)
 
 		return nil, nil
 	})
 
 	return &methods.Destroy_TaskBody{
 		Res: &types.Destroy_TaskResponse{
-			Returnval: task.Run(),
+			Returnval: task.Run(ctx),
 		},
 	}
 }

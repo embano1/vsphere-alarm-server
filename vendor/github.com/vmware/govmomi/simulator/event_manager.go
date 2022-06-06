@@ -39,9 +39,11 @@ var (
 type EventManager struct {
 	mo.EventManager
 
-	root       types.ManagedObjectReference
-	history    *list.List
-	key        int32
+	root types.ManagedObjectReference
+
+	history *list.List
+	key     int32
+
 	collectors map[types.ManagedObjectReference]*EventHistoryCollector
 	templates  map[string]*template.Template
 }
@@ -475,7 +477,7 @@ func (c *EventHistoryCollector) ReadPreviousEvents(ctx *Context, req *types.Read
 }
 
 func (c *EventHistoryCollector) DestroyCollector(ctx *Context, req *types.DestroyCollector) soap.HasFault {
-	ctx.Session.Remove(req.This)
+	ctx.Session.Remove(ctx, req.This)
 
 	ctx.WithLock(c.m, func() {
 		delete(c.m.collectors, req.This)

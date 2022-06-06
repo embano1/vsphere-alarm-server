@@ -365,16 +365,16 @@ kubectl -n vmware-functions describe trigger vsphere-alarm-server
 The vSphere Alarm Server is configured through environment variables (in the
 Kubernetes `deployment` manifest) instead of using command line flags.
 
-| Variable         | Description                                                                                                   | Default                 | Required |
-|------------------|---------------------------------------------------------------------------------------------------------------|-------------------------|----------|
-| PORT             | Listen port for the server                                                                                    | 8080                    | yes      |
-| CACHE_TTL        | Time-to-live for alarm objects in the cache before requesting update from vCenter                             | 3600 (seconds)          | no       |
-| VCENTER_URL      | URI of vCenter to connect to (https://vcenter.corp.local)                                                     | (empty)                 | yes      |
-| VCENTER_INSECURE | Ignore TLS certificate warnings when connecting to vCenter                                                    | "false"                 | no       |
-| SECRET_PATH      | Where to mount the injected vSphere Kubernetes secret credentials                                             | "/var/bindings/vsphere" | yes      |
-| DEBUG            | Print debug log statements                                                                                    | "false"                 | no       |
-| EVENT_SUFFIX     | Suffix to append to the CloudEvents `type`, e.g. "AlarmInfo"                                                  | (empty)                 | yes      |
-| ALARM_KEY        | Injected JSON key into the CloudEvents `data` (payload) representing the alarm info details, e.g. "AlarmInfo" | (empty)                 | yes      |
+| Variable            | Description                                                                                                   | Default                 | Required |
+|---------------------|---------------------------------------------------------------------------------------------------------------|-------------------------|----------|
+| PORT                | Listen port for the server                                                                                    | 8080                    | yes      |
+| CACHE_TTL           | Time-to-live for alarm objects in the cache before requesting update from vCenter                             | 3600 (seconds)          | no       |
+| VCENTER_URL         | URI of vCenter to connect to (https://vcenter.corp.local)                                                     | (empty)                 | yes      |
+| VCENTER_INSECURE    | Ignore TLS certificate warnings when connecting to vCenter                                                    | "false"                 | no       |
+| VCENTER_SECRET_PATH | Where to mount the injected vSphere Kubernetes secret credentials                                             | "/var/bindings/vsphere" | yes      |
+| DEBUG               | Print debug log statements                                                                                    | "false"                 | no       |
+| EVENT_SUFFIX        | Suffix to append to the CloudEvents `type`, e.g. "AlarmInfo"                                                  | (empty)                 | yes      |
+| ALARM_KEY           | Injected JSON key into the CloudEvents `data` (payload) representing the alarm info details, e.g. "AlarmInfo" | (empty)                 | yes      |
 
 ### Example EVENT_SUFFIX
 

@@ -8,27 +8,26 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/client"
+	vsphere "github.com/embano1/vsphere/client"
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25/mo"
+	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	"golang.org/x/sync/errgroup"
 	"knative.dev/pkg/logging"
 )
 
 const (
-	envPrefix        = ""
-	defaultMountPath = "/var/bindings/vsphere" // filepath.Join isn't const.
+	envPrefix = ""
 )
 
 type envConfig struct {
+	vsphere.Config
 	Port        int    `envconfig:"PORT" default:"8080" required:"true"`
 	TTL         int64  `envconfig:"CACHE_TTL" default:"3600"`
-	VCenter     string `envconfig:"VCENTER_URL" default:"" required:"true"`
-	Insecure    bool   `envconfig:"VCENTER_INSECURE" default:"false"`
-	SecretPath  string `envconfig:"SECRET_PATH" default:"/var/bindings/vsphere" required:"true"`
 	Debug       bool   `envconfig:"DEBUG" default:"false"`
 	EventSuffix string `envconfig:"EVENT_SUFFIX" default:"" required:"true"`
 	InjectKey   string `envconfig:"ALARM_KEY" default:"" required:"true"`
@@ -54,7 +53,7 @@ func newAlarmServer(ctx context.Context) (*alarmServer, error) {
 		return nil, err
 	}
 
-	vc, err := newSOAPClient(ctx)
+	vc, err := vsphere.New(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("create vsphere client: %w", err)
 	}
@@ -70,11 +69,11 @@ func newAlarmServer(ctx context.Context) (*alarmServer, error) {
 	}
 
 	a := alarmServer{
-		vcClient:  vc,
+		vcClient:  vc.SOAP,
 		ceClient:  ce,
 		cache:     newAlarmCache(env.TTL),
 		errCh:     make(chan error, 1), // any error received will lead to termination
-		source:    vc.URL().String(),
+		source:    vc.SOAP.URL().String(),
 		suffix:    fmt.Sprintf(".%s", env.EventSuffix),
 		injectKey: env.InjectKey,
 	}
@@ -232,4 +231,14 @@ func validateEnv(env envConfig) error {
 	}
 
 	return nil
+}
+
+func isNotAuthenticated(err error) bool {
+	if soap.IsSoapFault(err) {
+		switch soap.ToSoapFault(err).VimFault().(type) {
+		case types.NotAuthenticated:
+			return true
+		}
+	}
+	return false
 }
