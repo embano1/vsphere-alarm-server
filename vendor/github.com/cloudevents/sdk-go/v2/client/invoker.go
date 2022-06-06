@@ -1,3 +1,8 @@
+/*
+ Copyright 2021 The CloudEvents Authors
+ SPDX-License-Identifier: Apache-2.0
+*/
+
 package client
 
 import (
@@ -18,9 +23,11 @@ type Invoker interface {
 
 var _ Invoker = (*receiveInvoker)(nil)
 
-func newReceiveInvoker(fn interface{}, fns ...EventDefaulter) (Invoker, error) {
+func newReceiveInvoker(fn interface{}, observabilityService ObservabilityService, inboundContextDecorators []func(context.Context, binding.Message) context.Context, fns ...EventDefaulter) (Invoker, error) {
 	r := &receiveInvoker{
-		eventDefaulterFns: fns,
+		eventDefaulterFns:        fns,
+		observabilityService:     observabilityService,
+		inboundContextDecorators: inboundContextDecorators,
 	}
 
 	if fn, err := receiver(fn); err != nil {
@@ -33,8 +40,10 @@ func newReceiveInvoker(fn interface{}, fns ...EventDefaulter) (Invoker, error) {
 }
 
 type receiveInvoker struct {
-	fn                *receiverFn
-	eventDefaulterFns []EventDefaulter
+	fn                       *receiverFn
+	observabilityService     ObservabilityService
+	eventDefaulterFns        []EventDefaulter
+	inboundContextDecorators []func(context.Context, binding.Message) context.Context
 }
 
 func (r *receiveInvoker) Invoke(ctx context.Context, m binding.Message, respFn protocol.ResponseFn) (err error) {
@@ -48,11 +57,13 @@ func (r *receiveInvoker) Invoke(ctx context.Context, m binding.Message, respFn p
 	e, eventErr := binding.ToEvent(ctx, m)
 	switch {
 	case eventErr != nil && r.fn.hasEventIn:
+		r.observabilityService.RecordReceivedMalformedEvent(ctx, eventErr)
 		return respFn(ctx, nil, protocol.NewReceipt(false, "failed to convert Message to Event: %w", eventErr))
 	case r.fn != nil:
 		// Check if event is valid before invoking the receiver function
 		if e != nil {
 			if validationErr := e.Validate(); validationErr != nil {
+				r.observabilityService.RecordReceivedMalformedEvent(ctx, validationErr)
 				return respFn(ctx, nil, protocol.NewReceipt(false, "validation error in incoming event: %w", validationErr))
 			}
 		}
@@ -66,7 +77,13 @@ func (r *receiveInvoker) Invoke(ctx context.Context, m binding.Message, respFn p
 					cecontext.LoggerFrom(ctx).Error(result)
 				}
 			}()
+			ctx = computeInboundContext(m, ctx, r.inboundContextDecorators)
+
+			var cb func(error)
+			ctx, cb = r.observabilityService.RecordCallingInvoker(ctx, e)
+
 			resp, result = r.fn.invoke(ctx, e)
+			defer cb(result)
 			return
 		}()
 
@@ -106,4 +123,15 @@ func (r *receiveInvoker) IsReceiver() bool {
 
 func (r *receiveInvoker) IsResponder() bool {
 	return r.fn.hasEventOut
+}
+
+func computeInboundContext(message binding.Message, fallback context.Context, inboundContextDecorators []func(context.Context, binding.Message) context.Context) context.Context {
+	result := fallback
+	if mctx, ok := message.(binding.MessageContext); ok {
+		result = cecontext.ValuesDelegating(mctx.Context(), fallback)
+	}
+	for _, f := range inboundContextDecorators {
+		result = f(result, message)
+	}
+	return result
 }
